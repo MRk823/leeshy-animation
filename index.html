@@ -1,0 +1,325 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#050016">
+<title>For Aleesha 💗</title>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: radial-gradient(circle at center, #19052f, #050016 75%);
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+</style>
+</head>
+
+<body>
+<canvas id="sky"></canvas>
+
+<script>
+const canvas = document.getElementById("sky");
+const ctx = canvas.getContext("2d");
+
+let W, H, dpr;
+let stars = [];
+let fireworks = [];
+let floatingHearts = [];
+
+const off = document.createElement("canvas");
+const offCtx = off.getContext("2d");
+
+const colors = [
+  "#ff4b91",
+  "#ff69b4",
+  "#ffd1e8",
+  "#d9a0ff",
+  "#ffffff"
+];
+
+// Resize
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  W = window.innerWidth;
+  H = window.innerHeight;
+
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  off.width = W;
+  off.height = H;
+
+  createConstellation();
+}
+
+// Heart shape
+function heartPoint(t, scale) {
+  const x = 16 * Math.pow(Math.sin(t), 3);
+  const y = -(13 * Math.cos(t) -
+    5 * Math.cos(2*t) -
+    2 * Math.cos(3*t) -
+    Math.cos(4*t));
+
+  return {
+    x: W / 2 + x * scale,
+    y: H / 2 + y * scale
+  };
+}
+
+// Create heart and text stars
+function createConstellation() {
+  stars = [];
+
+  const heartScale = Math.min(W / 42, H / 48, 10);
+
+  // Heart outline
+  for (let t = 0; t < Math.PI * 2; t += 0.025) {
+    const p = heartPoint(t, heartScale);
+    stars.push(new Star(p.x, p.y, "#ff75b9", true));
+  }
+
+  // Text
+  offCtx.clearRect(0, 0, W, H);
+  offCtx.textAlign = "center";
+  offCtx.textBaseline = "middle";
+  offCtx.fillStyle = "white";
+
+  const fontSize = Math.min(W / 8.5, H / 9, 66);
+  offCtx.font = `bold ${fontSize}px Arial`;
+
+  offCtx.fillText("ALEESHY", W / 2, H / 2 - fontSize * 0.45);
+  offCtx.fillText("CUTIEEE", W / 2, H / 2 + fontSize * 0.55);
+
+  const pixels = offCtx.getImageData(0, 0, W, H);
+
+  for (let y = 0; y < H; y += 5) {
+    for (let x = 0; x < W; x += 5) {
+      const i = (y * W + x) * 4;
+
+      if (pixels.data[i + 3] > 128) {
+        stars.push(
+          new Star(x, y, colors[Math.floor(Math.random() * colors.length)])
+        );
+      }
+    }
+  }
+}
+
+// Star class
+class Star {
+  constructor(tx, ty, color, outline = false) {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+
+    this.tx = tx;
+    this.ty = ty;
+    this.color = color;
+
+    this.size = outline
+      ? Math.random() * 1.5 + 0.7
+      : Math.random() * 1.8 + 0.5;
+
+    this.alpha = 0;
+    this.phase = Math.random() * Math.PI * 2;
+  }
+
+  update() {
+    this.x += (this.tx - this.x) * 0.035;
+    this.y += (this.ty - this.y) * 0.035;
+
+    if (this.alpha < 1) this.alpha += 0.015;
+  }
+
+  draw() {
+    const glow = 0.55 + 0.45 *
+      Math.sin(Date.now() / 350 + this.phase);
+
+    ctx.globalAlpha = this.alpha * glow;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = this.color;
+    ctx.fillStyle = this.color;
+
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+  }
+}
+
+// Floating heart class
+class FloatingHeart {
+  constructor() {
+    this.x = Math.random() * W;
+    this.y = H + 30;
+    this.size = Math.random() * 12 + 7;
+    this.speed = Math.random() * 0.8 + 0.4;
+    this.alpha = Math.random() * 0.5 + 0.3;
+    this.color = colors[Math.floor(Math.random() * colors.length)];
+    this.drift = Math.random() * 1.5;
+  }
+
+  update() {
+    this.y -= this.speed;
+    this.x += Math.sin(this.y / 35) * this.drift * 0.15;
+    this.alpha -= 0.0008;
+  }
+
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, this.alpha);
+    ctx.fillStyle = this.color;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = this.color;
+
+    ctx.font = `${this.size}px Arial`;
+    ctx.fillText("♥", this.x, this.y);
+
+    ctx.restore();
+  }
+}
+
+// Firework particle
+class Particle {
+  constructor(x, y, color) {
+    this.x = x;
+    this.y = y;
+    this.color = color;
+    this.radius = Math.random() * 2 + 1;
+    this.angle = Math.random() * Math.PI * 2;
+    this.speed = Math.random() * 4 + 1;
+    this.alpha = 1;
+    this.decay = Math.random() * 0.018 + 0.012;
+  }
+
+  update() {
+    this.x += Math.cos(this.angle) * this.speed;
+    this.y += Math.sin(this.angle) * this.speed;
+    this.alpha -= this.decay;
+  }
+
+  draw() {
+    ctx.globalAlpha = Math.max(0, this.alpha);
+    ctx.fillStyle = this.color;
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = this.color;
+
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+  }
+}
+
+// Fireworks
+function createFirework() {
+  const x = Math.random() * W;
+  const y = Math.random() * H * 0.65;
+
+  const color = colors[Math.floor(Math.random() * colors.length)];
+
+  for (let i = 0; i < 55; i++) {
+    fireworks.push(new Particle(x, y, color));
+  }
+}
+
+// Bottom romantic message
+function drawMessage() {
+  ctx.save();
+
+  const fontSize = Math.max(12, Math.min(W / 24, 18));
+
+  ctx.textAlign = "center";
+  ctx.font = `italic ${fontSize}px Georgia`;
+
+  ctx.shadowBlur = 15;
+  ctx.shadowColor = "#ff69b4";
+  ctx.fillStyle = "#ffc5e2";
+
+  ctx.globalAlpha = 0.85;
+  ctx.fillText(
+    "You are my favorite star ♥",
+    W / 2,
+    H * 0.88
+  );
+
+  ctx.restore();
+}
+
+// Animation
+function animate() {
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "rgba(5, 0, 22, 0.22)";
+  ctx.fillRect(0, 0, W, H);
+
+  // Constellation stars
+  stars.forEach(star => {
+    star.update();
+    star.draw();
+  });
+
+  // Floating hearts
+  if (Math.random() < 0.04 && floatingHearts.length < 35) {
+    floatingHearts.push(new FloatingHeart());
+  }
+
+  for (let i = floatingHearts.length - 1; i >= 0; i--) {
+    const heart = floatingHearts[i];
+
+    heart.update();
+    heart.draw();
+
+    if (heart.y < -30 || heart.alpha <= 0) {
+      floatingHearts.splice(i, 1);
+    }
+  }
+
+  // Fireworks
+  if (Math.random() < 0.018 && fireworks.length < 500) {
+    createFirework();
+  }
+
+  for (let i = fireworks.length - 1; i >= 0; i--) {
+    const particle = fireworks[i];
+
+    particle.update();
+    particle.draw();
+
+    if (particle.alpha <= 0) {
+      fireworks.splice(i, 1);
+    }
+  }
+
+  drawMessage();
+
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(animate);
+}
+
+window.addEventListener("resize", resize);
+
+resize();
+animate();
+</script>
+
+</body>
+</html>
